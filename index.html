@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>名簿</title>
+  <meta name="description" content="職場や施設ごとに人物を登録し、あだ名・タグ・色で整理できる名簿アプリ">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="名簿">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ 名簿ビュー ============ -->
+  <section class="view" id="view-people" data-view="people">
+    <header class="topbar">
+      <div class="topbar-row">
+        <button class="bar-btn" id="btn-edit-mode" type="button">編集</button>
+        <div class="topbar-title" aria-hidden="true">名簿</div>
+        <button class="bar-btn bar-btn-icon" id="btn-add" type="button" aria-label="人物を追加">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <h1 class="large-title">名簿</h1>
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input class="search" id="search" type="search" placeholder="名前・あだ名・メモ・タグで検索" autocomplete="off" enterkeyhint="search" aria-label="検索">
+        <button class="search-clear" id="search-clear" type="button" aria-label="検索をクリア" hidden>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="chips-scroll" id="place-chips" role="group" aria-label="場所で絞り込み"></div>
+      <div class="chips-scroll" id="tag-chips" role="group" aria-label="タグで絞り込み"></div>
+    </header>
+
+    <div class="content">
+      <div id="birthday-banner" class="banner" hidden></div>
+      <div class="list-meta">
+        <span id="result-count"></span>
+        <button class="link-btn" id="btn-sort" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span id="sort-label">手動</span>
+        </button>
+      </div>
+      <div id="people-list" class="people-list"></div>
+      <div id="empty-state" class="empty" hidden></div>
+    </div>
+  </section>
+
+  <!-- ============ 場所・タグビュー ============ -->
+  <section class="view" id="view-groups" data-view="groups" hidden>
+    <header class="topbar">
+      <div class="topbar-row">
+        <span class="bar-spacer"></span>
+        <div class="topbar-title" aria-hidden="true">場所・タグ</div>
+        <span class="bar-spacer"></span>
+      </div>
+      <h1 class="large-title">場所・タグ</h1>
+    </header>
+    <div class="content">
+      <div class="section-head">
+        <h2>場所</h2>
+        <button class="link-btn" id="btn-add-place" type="button">＋ 追加</button>
+      </div>
+      <div class="group-list" id="place-list"></div>
+      <p class="hint">職場、施設、サークルなど、人物の所属先です。1人を複数の場所に登録することもできます。</p>
+
+      <div class="section-head">
+        <h2>タグ</h2>
+        <button class="link-btn" id="btn-add-tag" type="button">＋ 追加</button>
+      </div>
+      <div class="group-list" id="tag-list"></div>
+      <p class="hint">「女性」「月曜のみ」「要注意」など、横断的な目印です。絞り込みでは複数タグのAND検索ができます。</p>
+    </div>
+  </section>
+
+  <!-- ============ 設定ビュー ============ -->
+  <section class="view" id="view-settings" data-view="settings" hidden>
+    <header class="topbar">
+      <div class="topbar-row">
+        <span class="bar-spacer"></span>
+        <div class="topbar-title" aria-hidden="true">設定</div>
+        <span class="bar-spacer"></span>
+      </div>
+      <h1 class="large-title">設定</h1>
+    </header>
+    <div class="content">
+      <div class="section-head"><h2>データ</h2></div>
+      <div class="group-list static">
+        <button class="row" id="btn-export" type="button">
+          <span class="row-main">JSONで書き出す</span>
+          <span class="row-sub" id="export-sub"></span>
+        </button>
+        <button class="row" id="btn-import" type="button">
+          <span class="row-main">JSONを読み込む</span>
+          <span class="chev"></span>
+        </button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </div>
+      <p class="hint">データはこの端末のブラウザ内にだけ保存されます。機種変更や別端末で使うときは書き出したJSONを読み込んでください。バックアップとして定期的に書き出しておくと安心です。</p>
+
+      <div class="section-head"><h2>表示</h2></div>
+      <div class="group-list static">
+        <label class="row">
+          <span class="row-main">ふりがなを一覧に表示</span>
+          <input type="checkbox" class="switch" id="opt-show-kana">
+        </label>
+        <label class="row">
+          <span class="row-main">誕生日が近い人を上部に知らせる</span>
+          <input type="checkbox" class="switch" id="opt-birthday-banner">
+        </label>
+      </div>
+
+      <div class="section-head"><h2>アプリ</h2></div>
+      <div class="group-list static">
+        <div class="row">
+          <span class="row-main">保存状態</span>
+          <span class="row-sub" id="storage-status">確認中</span>
+        </div>
+        <div class="row">
+          <span class="row-main">ホーム画面に追加</span>
+        </div>
+      </div>
+      <p class="hint">iPhoneではSafariの共有ボタン →「ホーム画面に追加」、Androidではブラウザのメニュー →「ホーム画面に追加」または「アプリをインストール」で、アプリのように起動できます。</p>
+
+      <div class="section-head"><h2>危険な操作</h2></div>
+      <div class="group-list static">
+        <button class="row destructive" id="btn-wipe" type="button">
+          <span class="row-main">すべてのデータを削除</span>
+        </button>
+      </div>
+      <p class="hint version">名簿 v1.0</p>
+    </div>
+  </section>
+
+  <!-- ============ タブバー ============ -->
+  <nav class="tabbar" aria-label="メイン">
+    <button class="tab active" data-tab="people" type="button" aria-current="page">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Zm-9.5 9.5a5.5 5.5 0 0 1 11 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>名簿</span>
+    </button>
+    <button class="tab" data-tab="groups" type="button">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="19" cy="16.5" r="1.4" fill="currentColor"/></svg>
+      <span>場所・タグ</span>
+    </button>
+    <button class="tab" data-tab="settings" type="button">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v2.5M12 18.5V21M21 12h-2.5M5.5 12H3M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8M18.4 18.4l-1.8-1.8M7.4 7.4L5.6 5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>設定</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ============ シート ============ -->
+<div class="scrim" id="scrim" hidden></div>
+
+<!-- 人物詳細 -->
+<div class="sheet" id="sheet-detail" role="dialog" aria-modal="true" aria-labelledby="detail-name" hidden>
+  <div class="sheet-grabber"><span></span></div>
+  <div class="sheet-head">
+    <button class="bar-btn" type="button" data-close>閉じる</button>
+    <span class="sheet-title"></span>
+    <button class="bar-btn strong" type="button" id="btn-detail-edit">編集</button>
+  </div>
+  <div class="sheet-body" id="detail-body"></div>
+</div>
+
+<!-- 人物編集 -->
+<div class="sheet" id="sheet-edit" role="dialog" aria-modal="true" aria-labelledby="edit-title" hidden>
+  <div class="sheet-grabber"><span></span></div>
+  <div class="sheet-head">
+    <button class="bar-btn" type="button" data-close>キャンセル</button>
+    <span class="sheet-title" id="edit-title">新規</span>
+    <button class="bar-btn strong" type="button" id="btn-save" disabled>保存</button>
+  </div>
+  <form class="sheet-body form" id="edit-form" autocomplete="off">
+    <div class="avatar-preview-wrap">
+      <div class="avatar avatar-lg" id="edit-avatar">?</div>
+    </div>
+    <div class="field-group">
+      <label class="field">
+        <span class="field-label">名前</span>
+        <input type="text" id="f-name" placeholder="必須" required>
+      </label>
+      <label class="field">
+        <span class="field-label">ふりがな</span>
+        <input type="text" id="f-kana" placeholder="並び替えと検索に使います">
+      </label>
+    </div>
+
+    <div class="section-head"><h2>あだ名・別名</h2></div>
+    <div class="field-group">
+      <div class="chip-editor" id="f-aliases">
+        <div class="chip-list"></div>
+        <div class="chip-input-row">
+          <input type="text" placeholder="追加して Enter" enterkeyhint="done">
+          <button type="button" class="mini-btn">追加</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>場所</h2></div>
+    <div class="field-group">
+      <div class="toggle-chips" id="f-places"></div>
+      <div class="chip-input-row inset">
+        <input type="text" id="f-new-place" placeholder="新しい場所を作成" enterkeyhint="done">
+        <button type="button" class="mini-btn" id="btn-new-place">作成</button>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>タグ</h2></div>
+    <div class="field-group">
+      <div class="toggle-chips" id="f-tags"></div>
+      <div class="chip-input-row inset">
+        <input type="text" id="f-new-tag" placeholder="新しいタグを作成" enterkeyhint="done">
+        <button type="button" class="mini-btn" id="btn-new-tag">作成</button>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>色</h2></div>
+    <div class="field-group">
+      <div class="swatches" id="f-color" role="radiogroup" aria-label="色"></div>
+    </div>
+
+    <div class="section-head"><h2>誕生日</h2></div>
+    <div class="field-group">
+      <div class="field birthday-row">
+        <input type="number" id="f-byear" inputmode="numeric" placeholder="年（任意）" min="1900" max="2100">
+        <select id="f-bmonth" aria-label="月"><option value="">月</option></select>
+        <select id="f-bday" aria-label="日"><option value="">日</option></select>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>特徴・メモ</h2></div>
+    <div class="field-group">
+      <textarea id="f-note" rows="4" placeholder="見た目の特徴、話した内容、注意点など。検索の対象になります。"></textarea>
+    </div>
+    <div class="form-bottom-space"></div>
+  </form>
+</div>
+
+<!-- 場所/タグ編集 -->
+<div class="sheet sheet-compact" id="sheet-group" role="dialog" aria-modal="true" aria-labelledby="group-title" hidden>
+  <div class="sheet-grabber"><span></span></div>
+  <div class="sheet-head">
+    <button class="bar-btn" type="button" data-close>キャンセル</button>
+    <span class="sheet-title" id="group-title">場所</span>
+    <button class="bar-btn strong" type="button" id="btn-group-save" disabled>保存</button>
+  </div>
+  <div class="sheet-body form">
+    <div class="field-group">
+      <label class="field">
+        <span class="field-label">名前</span>
+        <input type="text" id="g-name" placeholder="必須">
+      </label>
+    </div>
+    <p class="hint" id="group-count"></p>
+    <div class="field-group" id="group-delete-wrap">
+      <button class="row destructive center" type="button" id="btn-group-delete">削除</button>
+    </div>
+    <div class="form-bottom-space"></div>
+  </div>
+</div>
+
+<!-- 並び替えオプション -->
+<div class="sheet sheet-compact" id="sheet-sort" role="dialog" aria-modal="true" aria-labelledby="sort-title" hidden>
+  <div class="sheet-grabber"><span></span></div>
+  <div class="sheet-head">
+    <span class="bar-spacer"></span>
+    <span class="sheet-title" id="sort-title">並び替え</span>
+    <button class="bar-btn strong" type="button" data-close>完了</button>
+  </div>
+  <div class="sheet-body form">
+    <div class="field-group" id="sort-options" role="radiogroup" aria-label="並び順"></div>
+    <div class="section-head"><h2>表示</h2></div>
+    <div class="field-group">
+      <label class="row">
+        <span class="row-main">場所ごとにまとめる</span>
+        <input type="checkbox" class="switch" id="opt-group-by-place">
+      </label>
+    </div>
+    <p class="hint">手動の並び順のときは、編集モードで右端のハンドルをドラッグして並び替えできます。</p>
+    <div class="form-bottom-space"></div>
+  </div>
+</div>
+
+<!-- 汎用確認 -->
+<div class="alert-wrap" id="alert" hidden>
+  <div class="alert" role="alertdialog" aria-modal="true" aria-labelledby="alert-title">
+    <div class="alert-title" id="alert-title"></div>
+    <div class="alert-msg" id="alert-msg"></div>
+    <div class="alert-actions" id="alert-actions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden>
+  <span id="toast-msg"></span>
+  <button type="button" id="toast-action" hidden></button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
